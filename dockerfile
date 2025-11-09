@@ -1,38 +1,27 @@
-# Start from the latest CentOS Stream container image
-FROM quay.io/centos/centos:stream9
+FROM centos:7
 
-# Install rpmbuild and common RPM build tooling
+# Install rpmbuild and common helpers/tools
 # - rpm-build: provides rpmbuild
-# - rpmdevtools: convenient helpers like rpmdev-setuptree
-# - dnf-plugins-core: provides `dnf builddep` for resolving BuildRequires
-# - git, make, gcc, tar: common build tools (adjust as needed)
-RUN dnf -y update && \
-    dnf -y install \
+# - rpmdevtools: helpers like rpmdev-setuptree, spectool
+# - redhat-rpm-config: macros commonly required by spec files
+# - yum-utils: provides yum-builddep for BuildRequires resolution
+# - gcc, make, git, tar, which: typical build tools (adjust as needed)
+RUN yum -y update && \
+    yum -y install \
         rpm-build \
         rpmdevtools \
-        dnf-plugins-core \
+        redhat-rpm-config \
+        yum-utils \
         rpmlint \
-        make \
         gcc \
+        make \
         git \
         tar \
         which \
-    && dnf clean all
+    && yum clean all
 
-# Create a non-root user for building (safer than root builds)
-ARG UID=1000
-ARG GID=1000
-RUN groupadd -g ${GID} builder && \
-    useradd -m -u ${UID} -g ${GID} -s /bin/bash builder
-
-USER builder
-WORKDIR /home/builder
-
-# Set up the standard RPM build tree under ~/rpmbuild
+# Use root as requested and set up the default rpmbuild tree in /root
 RUN rpmdev-setuptree
 
-# Default workdir for dropping in SPECS and SOURCES
-WORKDIR /home/builder/rpmbuild
-
-# Example entrypoint prints rpmbuild version to verify environment
-CMD ["rpmbuild", "--version"]
+# Default workdir where SPECS and SOURCES live
+WORKDIR /root/rpmbuild
